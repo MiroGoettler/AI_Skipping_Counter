@@ -1,0 +1,112 @@
+body {
+    background-color: #1F1F37;
+
+}
+
+h3 {
+    margin-bottom:0px;
+    margin-top:10px;
+
+}
+
+hr {
+    margin-bottom:16px;
+    margin-top:6px;
+}
+
+.container {
+    max-width: 1300px;
+}
+
+
+.time_graph{
+    /* background-color: red; */
+    width: auto;
+    /* padding: 0; */
+}
+
+
+.time_div {
+    height: 100px;
+    margin-bottom: 24px; 
+    background-color: #333A54;
+    /* width: 100%; */
+    text-align: center;
+    /* border-radius: 5px; */
+    color: white;
+    padding: 10px;
+}
+
+.time_title {
+    font-size: 16px;
+    /* background-color: blue; */
+    text-align: left;
+}
+
+.time{
+    font-size: 40px;
+    /* background-color: green; */
+    text-align: left;
+
+}
+.counter {
+    font-size: 90px;
+    line-height: 110px;
+}
+
+.tile {
+    height: 170px;
+    color:  white;
+    padding: 10px;
+    font-size: 16px;
+    /* border-radius: 10px; */
+}
+
+
+.counter_holder {
+    background-color: rgb(242, 190, 0);
+    margin-top: 12px;
+
+}
+
+.speed_holder {
+    /* background-color: #333A54; */
+    margin-top: 24px;
+
+}
+
+.max_speed_holder {
+    background-color: #3673EA;
+    margin-top: 24px;
+}
+
+.is_skipping {
+    background-color: red;
+    height: 158px;
+    padding: 25px 10px 0px 10px;
+    line-height: 50px;
+    text-align: center;
+    font-size: 25px;
+    color:  white;
+    margin-bottom: 12px;
+}
+
+
+.speed_graph_div {
+    background-color: #333A54;
+    margin-top: 24px;
+    padding: 12px;
+    font-size: 16px;
+    color:  white;
+}
+
+button  {
+    background-color: #333A54;
+    width: 300px;
+    /* border-radius: 7px; */
+    height: 45px;
+    color:white;
+    /* border-color: white; */
+    border:none;
+    margin: 0px 0px 12px 12px;
+}
