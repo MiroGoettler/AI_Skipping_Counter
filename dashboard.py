@@ -463,4 +463,4 @@ def save_session(reset_n, save_n):
 
 if __name__ == "__main__":
     cap = SkipCounter()
-    app.run_server(debug=False)
+    app.run_server(debug=True)
