@@ -349,7 +349,7 @@ app.layout = app.layout = dbc.Container(
                         skipping_indicator_row,
                         skip_row,
                         speed_row,
-                        html.Div(id="fps", style={"display": "none"}),
+                        html.Div(id="fps"),# style={"display": "none"}),
                     ]
                 ),
             ]
@@ -358,7 +358,7 @@ app.layout = app.layout = dbc.Container(
             id="interval_component",
             interval=1000,
             n_intervals=0,
-            disabled=True,
+            disabled=True, 
         ),
     ],
 )

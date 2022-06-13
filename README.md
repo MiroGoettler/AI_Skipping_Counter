@@ -16,7 +16,9 @@ The actual Skip-Counting was implemented with **Human Pose Detection**. The Pyth
 
 ![Skipping Styles](assets/skipping_styles.gif)
 
-For calculating the height of the lines the overall height of the user and the position of the ankles at the start of a skipping-series is used. This means it also needs to be determined at which point the user starts skipping. The best indication for that is the angle of the arms. 
+For calculating the height of the lines the overall height of the user and the position of the ankles at the start of a skipping-series is used. This means it also needs to be determined at which point the user starts skipping. The best indication for that is the angle of the arms. In the GIF bellow it is shown how the angle of the arms can be calculated and average of booth arms indicates at what point the skipping starts.
+
+![Skipping Styles](assets/angle_skipping.gif)
 
 ## Tech Stack
 - Python (refer to [requirement.txt](https://github.com/MiroGoettler/AK_Skipping_Counter/blob/main/requirements.txt) for all packages used in this project)

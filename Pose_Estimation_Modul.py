@@ -14,7 +14,7 @@ class PoseDetector:
 
         self.mpDraw = mp.solutions.drawing_utils
         self.mpPose = mp.solutions.pose
-        self.pose = self.mpPose.Pose(self.mode)  # , model_complexity=2)
+        self.pose = self.mpPose.Pose(self.mode)
 
     def findPose(self, img, draw=False):
         if self.img_shape is None:
@@ -23,10 +23,12 @@ class PoseDetector:
         img.flags.writeable = False
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         self.results = self.pose.process(imgRGB)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-        landmark_color = (255, 0, 0) # (255, 255, 255)
+        # convert img to grey
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+        landmark_color = (255, 0, 0)  # (255, 255, 255)
         if draw and self.results.pose_landmarks:
             img.flags.writeable = True
             self.mpDraw.draw_landmarks(
@@ -35,7 +37,7 @@ class PoseDetector:
                 self.mpPose.POSE_CONNECTIONS,
                 # change color of drawing
                 self.mpDraw.DrawingSpec(
-                    color=landmark_color, thickness=2, circle_radius=2 #(234, 115, 54)
+                    color=landmark_color, thickness=2, circle_radius=2 
                 ),  # in BGR not RGB
                 self.mpDraw.DrawingSpec(
                     color=landmark_color, thickness=2, circle_radius=2
@@ -45,32 +47,43 @@ class PoseDetector:
 
     def extract_coordinates_and_conf(self, landmark):
         """Extract x,y and z as array and confidence"""
-        return np.array([landmark.x, landmark.y, landmark.z]), landmark.visibility
+        if isinstance(landmark, dict):
+            return np.array([landmark["x"], landmark["y"]]), landmark["visibility"]
+        return np.array([landmark.x, landmark.y]), landmark.visibility  # , landmark.z
 
-    def calculate_angle_3D(self, a, b, c):
-        """For calculating angle between two vectors in 3D space."""
-        a, a_conf = self.extract_coordinates_and_conf(a)
-        b, b_conf = self.extract_coordinates_and_conf(b)
-        c, c_conf = self.extract_coordinates_and_conf(c)
 
+    def calculate_angle(self, a, b, c):
+        """For calculating angle between three landmarks"""
         ba = a - b
         bc = c - b
 
         cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
         angle = np.arccos(cosine_angle)
 
-        return int(np.degrees(angle)), np.array([a_conf, b_conf, c_conf]).mean()
+        return int(np.degrees(angle))# np.array([a_conf, b_conf, c_conf]).mean()
 
-    def get_landmarks(self):
+    def get_landmarks(self, h, w, c):
         if self.results and self.results.pose_landmarks:
-            return self.results.pose_landmarks.landmark
+            landmarks = self.results.pose_landmarks.landmark
+            # get pose landmarks
+            # landmarks = [[lm.x, lm.y, lm.z] for lm in landmarks]
+            # return np.multiply(landmarks, [w, h, c]).astype(int)
+            landmarks = [[lm.x, lm.y] for lm in landmarks]
+            return np.multiply(landmarks, [w, h]).astype(int)
         else:
             return []
 
+    def get_avg_visibility(self):
+        if self.results and self.results.pose_landmarks:
+            landmarks = self.results.pose_landmarks.landmark
+            return np.mean([lm.visibility for lm in landmarks])
+        else:
+            return 0.0
+
     def is_skipping(self, lm):
         """calculate angles between hand, hips and shoulders"""
-        left_angle = self.calculate_angle_3D(lm[15], lm[11], lm[23])[0]
-        right_angle = self.calculate_angle_3D(lm[14], lm[12], lm[24])[0]
+        left_angle = self.calculate_angle(lm[15], lm[11], lm[23])
+        right_angle = self.calculate_angle(lm[16], lm[12], lm[24])
         avg_angle = (left_angle + right_angle) / 2
 
         if avg_angle > 22:
@@ -79,7 +92,7 @@ class PoseDetector:
             return False
 
     def count_skipping(
-        self, img, count, dir, is_skipping, baseline, position, draw=False
+        self, img, count, dir, is_skipping, base, position, draw=None
     ):
         """
         The skipping is counted by checking if the position of the feet of
@@ -87,89 +100,70 @@ class PoseDetector:
         considering the relativ height of the user.
         """
         h, w, c = self.img_shape
-        lm = self.get_landmarks()
-        avg_visibility = np.mean([m.visibility for m in lm])
+        lm = self.get_landmarks(h, w, c)
 
         # jump heights
-        distance_1_2 = 15
-        distance_1_3 = 70
+        distance_1_2 = int(h * .020)
+        distance_1_3 = int(h * .097)
 
         # check if Person and Pose is detected
         anchor_relative = 0
         if len(lm) != 0:
-            hips = (lm[23].y + lm[24].y) / 2
-            shoulders = (lm[11].y + lm[12].y) / 2
 
             # get highest foot landmark
             l_foot = lm[27]
             r_foot = lm[28]
-            feet = l_foot.y if l_foot.y > r_foot.y else r_foot.y
+            feet = l_foot[1] if l_foot[1] > r_foot[1] else r_foot[1]
 
             # get height of torso as factor: hips - shoulders
-            height_Factor = hips - shoulders  # ~ 0.2 ... 0.4
+            hips = (lm[23][1] + lm[24][1]) / 2
+            shoulders = (lm[11][1] + lm[12][1]) / 2
+            height_Factor = hips - shoulders
             height_Factor = np.interp(height_Factor, (0.2, 0.4), (0.8, 1.2))
-
-            
 
             anchor = feet
 
-            if avg_visibility > 0.8 and self.is_skipping(lm):
+            if self.get_avg_visibility() > 0.8 and self.is_skipping(lm):
                 if not is_skipping:
-                    baseline = anchor
+                    base = anchor
                     distance_1_2 = distance_1_2 * height_Factor
                     distance_1_3 = distance_1_3 * height_Factor
 
-                base = int(baseline * h)
-                anchor_relative = int(anchor * h)
                 is_skipping = True
 
                 # Skipping-Counter mechanism
                 line2 = base - distance_1_2
                 line3 = base - distance_1_3
 
-                if anchor_relative < line2:
+                if anchor < line2:
                     if position == 0:  # first time over line 2
                         count += 1
                         position = 1
-                if anchor_relative > line2:
+                if anchor > line2:
                     if position == 1:
                         position = 0
-                if anchor_relative < line3:
+                if anchor < line3:
                     if position == 1:  # first time over line 3
                         count += 1
                         position = 2
-                if anchor_relative > line3:  # double jump
+                if anchor > line3:  # double jump
                     if position == 2:
                         position = 1
 
             else:
                 is_skipping = False
-                base = int(anchor * h)
+                base = anchor
         else:
             base = 0
             hips = 0
             shoulders = 0
 
-        if draw:
-            # cv2.line(img, (0, base - 10), (w, base), (0, 0, 255), 3)
-            first = int(base - distance_1_2)
-            cv2.line(img, (0, first), (w, first), (0, 0, 255), 3)
-            second = int(base - distance_1_3)
-            cv2.line(img, (0, second), (w, second), (0, 0, 255), 3)
-            # cv2.line(img, (0, anchor_relative), (w, anchor_relative), (0, 255, 0), 3)
+        if draw == "jump":
+            img = self.show_jump_lines(self, img, lm, base, distance_1_2, distance_1_3, w, count)
+        elif draw == "angle":
+            img = self.show_arm_angle(img, lm)
 
-            # show feet landmarks
-            feet_color = [(0, 255, 0), (255, 255, 255)] if l_foot.y < r_foot.y else [(255, 255, 255), (0, 255, 0)]
-            cv2.circle(img, (int(l_foot.x * w), int(l_foot.y * h)), 8, feet_color[0], -1)
-            cv2.circle(img, (int(r_foot.x * w), int(r_foot.y * h)), 8, feet_color[1], -1)
-
-            # put count
-            x = 400
-            y = 680
-            cv2.rectangle(img, (x-20, y-60), (x+100, y+20), (0, 0, 0), -1)
-            cv2.putText(img, str(count), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3, 2)
-
-        return img, count, dir, is_skipping, baseline, position
+        return img, count, dir, is_skipping, base, position
 
     def skipping_speed(self, history, time, count):
         buffer = 5  # sec
@@ -185,14 +179,116 @@ class PoseDetector:
 
         return history, speed
 
+    def show_arm_angle(self, img,lm):
+        # show angle circle
+        for i in [[16, 12, 24], [23, 11, 15]]:
+            # get start angle
+            # create new point
+            new_lm = [lm[i[1]][0], lm[i[0]][1]]
+            start_angle = self.calculate_angle(lm[i[0]], lm[i[1]], new_lm) + 90 # grad
+            angle = self.calculate_angle(lm[i[0]], lm[i[1]], lm[i[2]])
+            end_angle = start_angle - angle
+
+            cv2.ellipse(
+                img,
+                center=(lm[i[1]][0], lm[i[1]][1]),
+                axes=(130, 130),
+                angle=0,
+                startAngle=start_angle,
+                endAngle=end_angle,
+                color=(0, 255, 0) if self.is_skipping(lm) else (0,0,255),
+                thickness=-1,
+            )
+
+
+            # print angle
+            text_pos = np.mean([lm[j] for j in i], axis=0).astype(int)
+
+            # setup text
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            text = str("{}".format(angle))
+            textsize = cv2.getTextSize(text, font, 1, 2)[0]
+            cv2.putText(
+            img,
+            text,
+            (text_pos[0]-(textsize[0]//2), text_pos[1]),
+            font,
+            1,
+            (255, 255, 255),
+            3,
+            2,
+        )
+
+        # show lm
+        lm_indices = [11, 12, 15, 16, 23, 24]
+        for i in lm_indices:
+            cv2.circle(
+                img, (lm[i][0], lm[i][1]), 8, (0, 0, 255), -1
+            )
+
+        # show lines
+        lines = [[11, 23], [11, 15], [12, 24], [12, 16]]
+        for l in lines:
+            cv2.line(
+                img,
+                (lm[l[0]][0], lm[l[0]][1]),
+                (lm[l[1]][0], lm[l[1]][1]),
+                (0, 0, 255),
+                3,
+            )
+
+        return img
+
+
+    def show_jump_lines(self, img, lm, base, distance_1_2, distance_1_3, w, count):
+        l_foot = lm[27]
+        r_foot = lm[28]
+
+
+        # cv2.line(img, (0, base - 10), (w, base), (0, 0, 255), 3)
+        first = int(base - distance_1_2)
+        cv2.line(img, (0, first), (w, first), (0, 0, 255), 3)
+        second = int(base - distance_1_3)
+        cv2.line(img, (0, second), (w, second), (0, 0, 255), 3)
+
+        # show feet landmarks
+        feet_color = (
+            [(0, 255, 0), (255, 255, 255)]
+            if l_foot[1] < r_foot[1]
+            else [(255, 255, 255), (0, 255, 0)]
+        )
+        cv2.circle(
+            img, (l_foot[0], l_foot[1]), 8, feet_color[0], -1
+        )
+        cv2.circle(
+            img, (r_foot[0], r_foot[1]), 8, feet_color[1], -1
+        )
+
+        # put count
+        x = 400
+        y = 680
+        cv2.rectangle(img, (x - 20, y - 60), (x + 100, y + 20), (0, 0, 0), -1)
+        cv2.putText(
+            img,
+            str(count),
+            (x, y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            2,
+            (255, 255, 255),
+            3,
+            2,
+        )
+
+        return img
+
 
 class SkipCounter:
     def __init__(self):
         self.detector = PoseDetector()
         self.vidcap = cv2.VideoCapture(
             # 0
-            # "videos/skipping_standard.mp4"
-            "videos/skipping_doubleunder.mp4"
+            "videos/skipping_standard.mp4"
+            # "videos/skipping_doubleunder.mp4"
             # "videos/skipping_sidetoside.mp4"
             # "videos/skipping_standard+sidetoside.mp4"
             # "videos/skipping_test_full.mp4",
@@ -242,7 +338,6 @@ class SkipCounter:
             self.is_skipping,
             self.baseline,
             self.position,
-            draw=True,
         )
         self.fps.update()
         return self.return_as_byte(frame)
