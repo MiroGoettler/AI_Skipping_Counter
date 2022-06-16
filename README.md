@@ -22,7 +22,7 @@ In this small project I present a **Python Dashboard for automatic counting of r
 My solution to this problem is a [Plotly Dashboard](https://plotly.com/dash/) with an AI-based Counting System. In this dashboard the user can easily monitor the rope-skipping-session and see metrics like the total amount of skips, the speed of skipping and the time spend. With this Dashboard the user can concentrate on the physical effort and try to improve the performance without worrying about counting the skips.
 
 ## Methods
-The actual Skip-Counting was implemented with **Human Pose Detection**. The Python Modul *Mediapipe* by Google provides ready-to-use and real-time methods for Pose Detection. The method provides a landmark model with 33 pose landmarks. For counting the skips, a relative height threshold was determined by observing many videos of rope skipping. If the landmark from the left or right foot surpasses this height threshold on skip is counted. Because you can rope skip with both feet at the same time, but can also jump alternating with each foot, the landmark of the foot with the highest Y-coordinate is chosen. This seems to be the simplest method for counting the skips.
+The actual Skip-Counting was implemented with **Human Pose Detection**. The Python Modul [Mediapipe](https://google.github.io/mediapipe/getting_started/python.html) (by Google) provides ready-to-use and real-time methods for Pose Detection. The method provides a [landmark model](https://google.github.io/mediapipe/images/mobile/pose_tracking_full_body_landmarks.png) with 33 pose landmarks . For counting the skips, a relative height threshold was determined by observing many videos of rope skipping. If the landmark from the left or right foot surpasses this height threshold on skip is counted. Because you can rope skip with both feet at the same time, but can also jump alternating with each foot, the landmark of the foot with the highest Y-coordinate is chosen. This seems to be the simplest method for counting the skips.
 
 In the GIF bellow you can see how the different skipping-styles are counted. For double jumps a second relative height line was determined. The height of booth lines is relative to the height of the user and could furthermore be adjusted to the likings of an individual user.
 
@@ -61,4 +61,4 @@ python dashboard.py
     - Flask
     - Dash Plotly 
     - OpenCV
-    - [Mediapipe by Google](https://google.github.io/mediapipe/getting_started/python.html)
+    - Mediapipe
