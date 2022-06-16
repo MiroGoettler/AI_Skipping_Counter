@@ -349,7 +349,7 @@ app.layout = app.layout = dbc.Container(
                         skipping_indicator_row,
                         skip_row,
                         speed_row,
-                        html.Div(id="fps"),# style={"display": "none"}),
+                        html.Div(id="fps", style={"display": "none"}),
                     ]
                 ),
             ]
@@ -463,4 +463,4 @@ def save_session(reset_n, save_n):
 
 if __name__ == "__main__":
     cap = SkipCounter()
-    app.run_server(debug=True)
+    app.run_server(debug=False)

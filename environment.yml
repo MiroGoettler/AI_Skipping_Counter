@@ -1,0 +1,18 @@
+name: ai_skipping_counter_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip=21.2.2
+  - python=3.7.11
+  - pip:
+    - dash==2.4.1
+    - dash-bootstrap-components==1.1.0
+    - flask==2.1.2
+    - matplotlib==3.4.2
+    - mediapipe==0.8.6.2
+    - numpy==1.21.1
+    - opencv-python==4.5.3.56
+    - pandas==1.3.5
+    - plotly==5.8.0
+    - protobuf==3.17.3
